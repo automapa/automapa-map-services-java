@@ -30,6 +30,7 @@ import pl.automapa.mapservices.response.ApiResponse;
 import pl.automapa.mapservices.session.InMemorySessionStorage;
 import pl.automapa.mapservices.session.PasswordHasher;
 import pl.automapa.mapservices.session.SessionManager;
+import pl.automapa.mapservices.session.SessionStorage;
 import pl.automapa.mapservices.support.Fixtures;
 import pl.automapa.mapservices.support.MockHttpClient;
 
@@ -371,6 +372,61 @@ class ApiClientTest {
                 .hasMessageContaining("Forbidden - no permission")
                 .hasMessageContaining("HTTP 403");
         assertThat(mockHttp.requestCount()).isEqualTo(4);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"message, Forbidden - no permission", "error, NO PERMISSION for this service"})
+    void noPermission403IsNotRetriedAndKeepsTheSession(String field, String text) {
+        mockHttp.addResponse("Routes", "route", Map.of(field, text), 403);
+        InMemorySessionStorage storage = new InMemorySessionStorage();
+        storage.store(STORED_SESSION);
+        ApiClient guarded = new ApiClient(config, mockHttp, new SessionManager(config, mockHttp, storage), null);
+
+        assertThatThrownBy(() -> guarded.call("Routes", "route", Map.of()))
+                .isInstanceOf(SessionException.class)
+                .hasMessageContaining(text)
+                .hasMessageContaining("HTTP 403");
+        assertThat(mockHttp.requestCount()).isEqualTo(1);
+        assertThat(storage.get()).isEqualTo(STORED_SESSION);
+    }
+
+    @Test
+    void retryAfter403UsesTheSessionRenewedMeanwhileByAnotherThread() {
+        mockHttp.addSequence(
+                "Geocoder",
+                "geocode",
+                List.of(
+                        MockHttpClient.reply(403, Map.of("message", "Session expired")),
+                        MockHttpClient.reply(200, Fixtures.load("geocode_success"))));
+        List<String> cleared = new ArrayList<>();
+        SessionStorage renewedMeanwhile = new SessionStorage() {
+            private int reads;
+
+            @Override
+            public String get() {
+                return reads++ == 0 ? "stale-session" : "renewed-session";
+            }
+
+            @Override
+            public void store(String sessionId) {
+                throw new AssertionError("no new session expected, got " + sessionId);
+            }
+
+            @Override
+            public void clear() {
+                cleared.add("clear");
+            }
+        };
+        ApiClient guarded =
+                new ApiClient(config, mockHttp, new SessionManager(config, mockHttp, renewedMeanwhile), null);
+
+        ApiResponse response = guarded.call("Geocoder", "geocode", Map.of());
+
+        assertThat(response.status()).isEqualTo(200);
+        assertThat(cleared).isEmpty();
+        assertThat(mockHttp.requestCount()).isEqualTo(2);
+        assertThat(mockHttp.allRequests().get(0).headers()).containsEntry("Session-Id", "stale-session");
+        assertThat(mockHttp.allRequests().get(1).headers()).containsEntry("Session-Id", "renewed-session");
     }
 
     @Test

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import pl.automapa.mapservices.endpoint.Autocomplete;
@@ -23,6 +24,7 @@ import pl.automapa.mapservices.http.HttpResponse;
 import pl.automapa.mapservices.http.JdkHttpClient;
 import pl.automapa.mapservices.http.RequestBuilder;
 import pl.automapa.mapservices.json.Json;
+import pl.automapa.mapservices.json.JsonException;
 import pl.automapa.mapservices.request.RoadPermitEnvironment;
 import pl.automapa.mapservices.response.ApiResponse;
 import pl.automapa.mapservices.response.ResponseParser;
@@ -38,7 +40,8 @@ import pl.automapa.mapservices.session.SessionManager;
  * }</pre>
  *
  * <p>The client opens the API session lazily on the first protected call (every method except
- * {@code Session.getSalt} and {@code Session.generateSession}) and renews it once after an HTTP 403 response. The
+ * {@code Session.getSalt} and {@code Session.generateSession}) and renews it once after an HTTP 403 response, unless
+ * the API says that the key has no permission for the service. The
  * optional {@code format} parameter selects a response formatter registered in the {@link FormatterRegistry}; it is
  * never sent to the API.
  *
@@ -50,6 +53,7 @@ public final class ApiClient {
     private static final String FORMAT_PARAM = "format";
     private static final int FORBIDDEN = 403;
     private static final String GOOGLE_FORMAT = "google";
+    private static final String NO_PERMISSION = "no permission";
 
     /** Version of this SDK, taken from the Maven project version at build time. */
     public static final String SDK_VERSION = loadSdkVersion();
@@ -134,15 +138,18 @@ public final class ApiClient {
      * selects the response format ({@code Config.getDefaultFormat()} when missing or {@code null}); a format other
      * than {@code native} that is registered in the {@link FormatterRegistry} fills {@link ApiResponse#data()} with
      * the formatter output, an unregistered one is ignored. The {@code Session-Id} header is added for every method
-     * that requires a session; after an HTTP 403 response the session is renewed and the request is sent once more.
-     * The caller's map is never modified.
+     * that requires a session; after an HTTP 403 response the session is renewed and the request is sent once more,
+     * except when the response {@code message} or {@code error} says {@code no permission} (a new session cannot
+     * grant access to a service outside the key's plan). Only the rejected session is forgotten: a session opened
+     * meanwhile by another thread is reused. The caller's map is never modified.
      *
      * @param service API service name, e.g. {@code Geocoder}
      * @param method API method name, e.g. {@code geocode}
      * @param params request parameters ({@code null} means none)
      * @return the parsed response with the meta data {@code service} and {@code method}
      * @throws IllegalArgumentException when {@code service} or {@code method} is {@code null} or blank
-     * @throws pl.automapa.mapservices.exception.SessionException when the retry after HTTP 403 is also rejected
+     * @throws pl.automapa.mapservices.exception.SessionException when the API key has no permission for the service
+     *     or the retry after HTTP 403 is also rejected
      * @throws pl.automapa.mapservices.exception.AutomapaException on another HTTP, API or transport error
      * @throws pl.automapa.mapservices.json.JsonException when a parameter value cannot be written as JSON
      */
@@ -155,8 +162,8 @@ public final class ApiClient {
 
         String sessionId = sessionManager.requiresSession(service, method) ? sessionManager.ensureSession() : null;
         HttpResponse httpResponse = httpClient.send(requestBuilder.build(service, method, body, sessionId));
-        if (httpResponse.statusCode() == FORBIDDEN && sessionId != null) {
-            sessionManager.clearSession();
+        if (httpResponse.statusCode() == FORBIDDEN && sessionId != null && !isPermissionDenied(httpResponse)) {
+            sessionManager.clearSession(sessionId);
             sessionId = sessionManager.ensureSession();
             httpResponse = httpClient.send(requestBuilder.build(service, method, body, sessionId));
         }
@@ -327,6 +334,29 @@ public final class ApiClient {
     /** Returns the HTTP transport; for tests of {@link #create(Config)}. */
     HttpClient httpClient() {
         return httpClient;
+    }
+
+    /**
+     * Tells whether an HTTP 403 response means that the API key has no permission for the service, which a new
+     * session cannot fix, rather than an expired or invalid session.
+     */
+    private static boolean isPermissionDenied(HttpResponse response) {
+        Object body;
+        try {
+            body = Json.parse(response.body());
+        } catch (JsonException e) {
+            return false;
+        }
+        if (!(body instanceof Map)) {
+            return false;
+        }
+        Map<?, ?> fields = (Map<?, ?>) body;
+        return mentionsNoPermission(fields.get("message")) || mentionsNoPermission(fields.get("error"));
+    }
+
+    private static boolean mentionsNoPermission(Object text) {
+        return text instanceof String
+                && ((String) text).toLowerCase(Locale.ROOT).contains(NO_PERMISSION);
     }
 
     private static FormatterRegistry defaultFormatterRegistry() {

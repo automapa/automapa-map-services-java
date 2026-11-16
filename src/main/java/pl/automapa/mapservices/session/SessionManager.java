@@ -82,6 +82,21 @@ public final class SessionManager {
         storage.clear();
     }
 
+    /**
+     * Forgets the stored session id only when it is still {@code sessionId}, e.g. the session rejected by the API.
+     *
+     * <p>A session opened meanwhile by another thread is kept, so concurrent callers that saw the same rejected
+     * session do not replace each other's fresh session.
+     *
+     * @param sessionId the session id that is no longer valid
+     */
+    public synchronized void clearSession(String sessionId) {
+        String stored = storage.get();
+        if (stored != null && stored.equals(sessionId)) {
+            storage.clear();
+        }
+    }
+
     private String openSession() {
         String salt = resultText(call(GET_SALT, Map.of("key", config.getKey())), GET_SALT, "salt");
         String pass = PasswordHasher.hash(config.getPassword(), salt);

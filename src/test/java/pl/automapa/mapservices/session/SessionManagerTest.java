@@ -165,6 +165,20 @@ class SessionManagerTest {
         assertThat(storage.get()).isNull();
     }
 
+    @Test
+    void clearSessionWithIdClearsOnlyWhenThatSessionIsStillStored() {
+        InMemorySessionStorage storage = new InMemorySessionStorage();
+        storage.store("id-2");
+        SessionManager manager = new SessionManager(config, mockHttp, storage);
+
+        manager.clearSession("id-1");
+        assertThat(storage.get()).isEqualTo("id-2");
+
+        manager.clearSession("id-2");
+        assertThat(storage.get()).isNull();
+        assertThat(mockHttp.requestCount()).isZero();
+    }
+
     @ParameterizedTest
     @CsvSource({
         "Session, getSalt, false",
