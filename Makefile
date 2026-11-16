@@ -102,7 +102,7 @@ examples: m2 ## Run examples/*.java of the services in AUTOMAPA_API_REQUIRED_ACC
 	@echo "Next: run 'make check' before committing."
 
 package: m2 ## Build the jar, -sources.jar and -javadoc.jar into target/ and verify their contents
-	$(MVN) package source:jar-no-fork javadoc:jar -DskipTests $(ARGS)
+	$(MVN) package source:jar-no-fork javadoc:jar -DskipTests -Djacoco.skip=true $(ARGS)
 	$(RUN) docker/maven/verify-package.sh
 	@echo "Next: publish the jars as a GitHub Release (the version in pom.xml must not be -SNAPSHOT; push main and the tag first):"
 	@echo "  git tag -a v$(VERSION) -m v$(VERSION) && git push github main v$(VERSION)"

@@ -105,6 +105,8 @@ class PublishingSentinelTest {
         assertThat(recipe.find()).as("Makefile needs a package target").isTrue();
         assertThat(recipe.group(1))
                 .containsSubsequence("package", "source:jar-no-fork", "javadoc:jar", "docker/maven/verify-package.sh")
+                .as("tests are skipped, so a stale target/jacoco.exec must not fail the coverage check")
+                .contains("-DskipTests -Djacoco.skip=true")
                 .doesNotContain("-Prelease")
                 .doesNotContain("deploy");
         Path script = ROOT.resolve("docker/maven/verify-package.sh");
