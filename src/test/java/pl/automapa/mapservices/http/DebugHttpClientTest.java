@@ -149,10 +149,40 @@ class DebugHttpClientTest {
         new DebugHttpClient(recording(response), out).send(request);
 
         assertThat(written())
-                .contains("{\"key\":\"api-key\",\"pass\":\"***\"}")
+                .contains("{\"key\":\"***\",\"pass\":\"***\"}")
                 .contains("{\"echo\":{\"pass\" : \"***\"},\"other\":1}")
                 .doesNotContain("5f4dcc3b5aa765d61d8327deb882cf99")
+                .doesNotContain("api-key")
                 .doesNotContain("aped");
+    }
+
+    @Test
+    void masksApiKeyAndSessionIdInRequestAndResponseBodies() {
+        HttpRequest request = new HttpRequest(
+                "POST", "https://example.com/v3/Session/getSalt", Map.of(), "{\"key\" : \"secret-api-key\"}");
+        HttpResponse response = new HttpResponse(200, "{\"result\":{\"sessionId\":\"live-session-id\",\"ttl\":600}}");
+
+        new DebugHttpClient(recording(response), out).send(request);
+
+        assertThat(written())
+                .contains("{\"key\" : \"***\"}")
+                .contains("{\"result\":{\"sessionId\":\"***\",\"ttl\":600}}")
+                .doesNotContain("secret-api-key")
+                .doesNotContain("live-session-id");
+    }
+
+    @Test
+    void keepsOtherFieldsThatOnlyContainKeyOrSessionIdInTheirName() {
+        HttpRequest request = new HttpRequest(
+                "POST",
+                "https://example.com/",
+                Map.of(),
+                "{\"keyword\":\"a\",\"apikey_hint\":\"b\",\"sessionIdx\":\"c\",\"msg\":\"key\"}");
+
+        new DebugHttpClient(recording(new HttpResponse(200, "")), out).send(request);
+
+        assertThat(written())
+                .contains("{\"keyword\":\"a\",\"apikey_hint\":\"b\",\"sessionIdx\":\"c\",\"msg\":\"key\"}");
     }
 
     @Test

@@ -13,8 +13,8 @@ import java.util.regex.Pattern;
  *
  * <p>Each request is printed as a {@code === REQUEST ===} block (method and URL, headers, body) before it is sent, and
  * each response as a {@code === RESPONSE (<status>) ===} block (headers, body) after it is received. Secrets are
- * masked in the printed text only: the value of the {@code Session-Id} header and of every JSON {@code pass} field is
- * replaced with {@code ***}. The request handed to the wrapped client and the returned response are not changed.
+ * masked in the printed text only: the value of the {@code Session-Id} header and of every JSON {@code pass},
+ * {@code key} and {@code sessionId} field (in request and response bodies) is replaced with {@code ***}. The request handed to the wrapped client and the returned response are not changed.
  * When the wrapped client throws, the exception is propagated and no response block is printed.
  *
  * <p>The decorator is thread safe when the wrapped client is; blocks of concurrent calls may interleave.
@@ -23,8 +23,8 @@ public final class DebugHttpClient implements HttpClient {
 
     private static final String MASK = "***";
     private static final String SESSION_HEADER = "Session-Id";
-    private static final Pattern PASS_FIELD =
-            Pattern.compile("(\"pass\"\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"|[^\\s,}\\]]+)");
+    private static final Pattern SECRET_FIELD =
+            Pattern.compile("(\"(?:pass|key|sessionId)\"\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"|[^\\s,}\\]]+)");
 
     private final HttpClient inner;
     private final PrintStream out;
@@ -91,12 +91,12 @@ public final class DebugHttpClient implements HttpClient {
                 (name, value) -> lines.add(name + ": " + (SESSION_HEADER.equalsIgnoreCase(name) ? MASK : value)));
         if (!body.isEmpty()) {
             lines.add("");
-            lines.add(maskPass(body));
+            lines.add(maskSecrets(body));
         }
     }
 
-    private static String maskPass(String body) {
-        return PASS_FIELD.matcher(body).replaceAll("$1\"" + Matcher.quoteReplacement(MASK) + "\"");
+    private static String maskSecrets(String body) {
+        return SECRET_FIELD.matcher(body).replaceAll("$1\"" + Matcher.quoteReplacement(MASK) + "\"");
     }
 
     private void print(List<String> lines) {
