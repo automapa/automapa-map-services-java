@@ -46,7 +46,15 @@ class ConfigTest {
     void toStringDoesNotRevealPassword() {
         String text = Config.builder("test-key", "very-secret-pass").build().toString();
 
-        assertThat(text).contains("test-key").contains("***").doesNotContain("very-secret-pass");
+        assertThat(text).contains("password=***").doesNotContain("very-secret-pass");
+    }
+
+    @Test
+    void toStringDoesNotRevealApiKey() {
+        String text =
+                Config.builder("secret-api-key", "very-secret-pass").build().toString();
+
+        assertThat(text).contains("key=***").doesNotContain("secret-api-key");
     }
 
     @Test

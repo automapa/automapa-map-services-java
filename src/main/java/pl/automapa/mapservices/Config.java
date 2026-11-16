@@ -164,14 +164,14 @@ public final class Config {
     }
 
     /**
-     * Describes the configuration with the password masked as {@code ***}.
+     * Describes the configuration with the API key and the password masked as {@code ***}.
      *
      * @return the description
      */
     @Override
     public String toString() {
-        return "Config{key=" + key + ", password=***, baseUrl=" + baseUrl + ", version=" + version + ", userAgent="
-                + userAgent + ", timeout=" + timeout + ", defaultFormat=" + defaultFormat + "}";
+        return "Config{key=***, password=***, baseUrl=" + baseUrl + ", version=" + version + ", userAgent=" + userAgent
+                + ", timeout=" + timeout + ", defaultFormat=" + defaultFormat + "}";
     }
 
     private static String requireText(String value, String name, String fix) {
