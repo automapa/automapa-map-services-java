@@ -72,25 +72,52 @@ Every call is a `POST https://api.automapa.pl/v3/{Service}/{method}` with a JSON
 
 ## 2. Installation
 
-Maven:
+Requirements: Java 17+, zero runtime dependencies. The SDK is distributed as a jar attached to
+[GitHub Releases](https://github.com/automapa/automapa-map-services-java/releases), not through a Maven repository.
 
-```xml
-<dependency>
-  <groupId>pl.automapa</groupId>
-  <artifactId>map-services</artifactId>
-  <version>0.1.0</version>
-</dependency>
-```
+1. Download the jar (the `-sources.jar` and `-javadoc.jar` of the same release are optional, for your IDE):
 
-Gradle (Kotlin DSL):
+   ```bash
+   curl -LO https://github.com/automapa/automapa-map-services-java/releases/download/v0.1.0/map-services-0.1.0.jar
+   ```
 
-```kotlin
-implementation("pl.automapa:map-services:0.1.0")
-```
+2. Install it into your local Maven repository (`~/.m2`):
 
-Requirements: Java 17+, zero runtime dependencies. The artifact is not published to Maven Central yet; until then
-build the jars with `make package` (`target/map-services-<version>.jar` plus `-sources.jar` and `-javadoc.jar`,
-checked for test classes, fixtures and `.env`) and add the jar to your project.
+   ```bash
+   mvn install:install-file -Dfile=map-services-0.1.0.jar \
+     -DgroupId=pl.automapa -DartifactId=map-services -Dversion=0.1.0 -Dpackaging=jar
+   ```
+
+3. Add the dependency.
+
+   Maven:
+
+   ```xml
+   <dependency>
+     <groupId>pl.automapa</groupId>
+     <artifactId>map-services</artifactId>
+     <version>0.1.0</version>
+   </dependency>
+   ```
+
+   Gradle (Kotlin DSL):
+
+   ```kotlin
+   repositories {
+       mavenLocal()
+   }
+
+   dependencies {
+       implementation("pl.automapa:map-services:0.1.0")
+   }
+   ```
+
+Without step 2 you can also put the jar in your project and reference the file directly, e.g. in Gradle
+`implementation(files("libs/map-services-0.1.0.jar"))`.
+
+To build the jar from source instead, clone this repository and run `make package` (requires Docker). It writes
+`target/map-services-<version>.jar` plus `-sources.jar` and `-javadoc.jar`, checked for test classes, fixtures and
+`.env`.
 
 ---
 

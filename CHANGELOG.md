@@ -11,8 +11,10 @@ without the deprecated speed report service.
 
 ### Added
 - `ApiClient` with lazy session handling (`getSalt` → `md5(md5(password) + salt)` → `generateSession`), one retry
-  with a fresh session after HTTP 403, `openSession()`, low-level `call()` and `request()`
-- `Config` with a builder and `Config.fromEnvironment()` (`AUTOMAPA_API_KEY`, `AUTOMAPA_API_PASSWORD`)
+  with a fresh session after HTTP 403 (not after "no permission"; only the rejected session is cleared, so
+  concurrent callers keep a session renewed meanwhile), `openSession()`, low-level `call()` and `request()`
+- `Config` with a builder and `Config.fromEnvironment()` (`AUTOMAPA_API_KEY`, `AUTOMAPA_API_PASSWORD`);
+  `toString()` masks the API key and the password
 - Services: `PingPong`, `Session` (`getSalt`, `generateSession`, `login`), `Geocoder` (`geocode`, `geocodemulti`,
   `revgeocode`, `revgeocodemulti`), `Autocomplete` (`search`, `searchAddress`, `getPostalCodesForStreet`), `Routes`
   (`route`, `matrix`, `optimize`, `optimizeQueue`, `optimizeQueueResult`), `Road` (`getSegmentInfo`, `speedCheck`,
@@ -23,10 +25,12 @@ without the deprecated speed report service.
 - Request objects with builders and an `extra` map forwarded to the API; named parameters override `extra`
 - Response formats `native` and `google` (`GoogleFormatter`) and the `GoogleGeocodeAdapter` drop-in
 - Exception hierarchy under `AutomapaException` with messages that explain how to fix the problem
-- `DebugHttpClient` printing requests and responses with the session id and password masked
+- `DebugHttpClient` printing requests and responses with the `Session-Id` header and the JSON fields `pass`, `key`
+  and `sessionId` masked
 - `User-Agent: automapa-java-sdk/<version>` header
 - Own JSON codec and `java.net.http` transport: zero runtime dependencies, Java 17+
 - Runnable examples in `examples/` (`make examples`)
+- Distribution as a jar attached to GitHub Releases (installation steps in the README)
 - `make package` building the jar with `-sources.jar` and `-javadoc.jar` and verifying their contents; Maven Central
   metadata and a `release` profile (sources, javadoc, GPG signing, Central Portal upload)
 

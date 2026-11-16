@@ -142,6 +142,20 @@ class DocumentationTest {
     }
 
     @Test
+    void installationDownloadsTheJarFromGitHubReleases() throws Exception {
+        PomModel pom = PomModel.load(ROOT.resolve("pom.xml"));
+        String artifactId = pom.projectText("artifactId");
+        String release = pom.projectVersion().replace("-SNAPSHOT", "");
+        String jar = artifactId + "-" + release + ".jar";
+
+        assertThat(readme())
+                .contains(pom.projectText("url") + "/releases/download/v" + release + "/" + jar)
+                .contains("mvn install:install-file -Dfile=" + jar)
+                .contains("mavenLocal()")
+                .doesNotContain("Maven Central");
+    }
+
+    @Test
     void everyEndpointMethodHasReadmeExample() throws IOException {
         String code = String.join("\n", javaSnippets(readme()));
 
