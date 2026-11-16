@@ -1,0 +1,16 @@
+# Hidden directories (tooling, caches, IDE settings)
+.*/
+# Only exception: GitHub Actions workflows
+!.github/
+
+# Local configuration with credentials
+.env
+.env.local
+
+# Build output
+target/
+
+# IDE files
+*.iml
+*.iws
+*.ipr

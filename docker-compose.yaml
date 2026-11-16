@@ -1,0 +1,16 @@
+services:
+  maven:
+    # Pinned by tag and digest; never use "latest".
+    image: maven:3.9.12-eclipse-temurin-17@sha256:a0603aab698040d9c94259f379ec0487da1678560748d6c7508483034033c53d
+    # Run as the host user so files in target/ and .m2/ stay owned by the developer.
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /workspace
+    environment:
+      MAVEN_CONFIG: /var/maven/.m2
+      HOME: /tmp
+    volumes:
+      - .:/workspace
+      - ./.m2:/var/maven/.m2
+    env_file:
+      - path: .env
+        required: false

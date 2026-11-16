@@ -1,0 +1,29 @@
+{
+  "result": [
+    {
+      "date_end": "2026-12-31",
+      "date_start": "2026-05-01",
+      "description": "Temporary traffic restriction for heavy vehicles.",
+      "document_name": "ZDiK.TO.461.219.2020.AO",
+      "location": "Tarnow Dabrowskiego",
+      "permissions": {
+        "tr_tonnage": 24,
+        "tr_tonn_axis": 8.5
+      },
+      "poly": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [20.993155973821672, 50.01069571221776],
+            [20.994428585759994, 50.01089900951218],
+            [20.994138589184054, 50.011559010137475],
+            [20.9932253, 50.0118279],
+            [20.993155973821672, 50.01069571221776]
+          ]
+        ]
+      },
+      "is_valid_after_expiry": true,
+      "id": "60a79ba2"
+    }
+  ]
+}
