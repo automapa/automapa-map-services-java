@@ -11,6 +11,9 @@ COMPOSE := docker compose
 RUN     := $(COMPOSE) run --rm maven
 MVN     := $(RUN) mvn -B --no-transfer-progress -Duser.home=/var/maven
 
+# Project version from pom.xml (the only <version> indented by two spaces), used in the release hint of "make package".
+VERSION := $(shell sed -n 's|^  <version>\(.*\)</version>$$|\1|p' pom.xml)
+
 # Quality gate steps run by "make check", in this order.
 CHECK_STEPS := format-check lint typecheck javadoc test-unit
 
@@ -101,7 +104,10 @@ examples: m2 ## Run examples/*.java of the services in AUTOMAPA_API_REQUIRED_ACC
 package: m2 ## Build the jar, -sources.jar and -javadoc.jar into target/ and verify their contents
 	$(MVN) package source:jar-no-fork javadoc:jar -DskipTests $(ARGS)
 	$(RUN) docker/maven/verify-package.sh
-	@echo "Next: find the jars in target/; publishing steps are described in the release profile of pom.xml."
+	@echo "Next: publish the jars as a GitHub Release (the version in pom.xml must not be -SNAPSHOT; push main and the tag first):"
+	@echo "  git tag -a v$(VERSION) -m v$(VERSION) && git push github main v$(VERSION)"
+	@echo "  gh release create v$(VERSION) --repo automapa/automapa-map-services-java --title v$(VERSION) --notes-file <notes.md> \\"
+	@echo "    target/map-services-$(VERSION).jar target/map-services-$(VERSION)-sources.jar target/map-services-$(VERSION)-javadoc.jar"
 
 shell: m2 ## Open a shell in the maven container
 	$(COMPOSE) run --rm maven bash

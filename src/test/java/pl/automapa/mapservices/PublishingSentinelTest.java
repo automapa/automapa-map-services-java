@@ -116,4 +116,19 @@ class PublishingSentinelTest {
                 .contains(".env")
                 .contains("fixtures/");
     }
+
+    @Test
+    void makePackagePointsToAGitHubReleaseOfTheBuiltJars() throws Exception {
+        String makefile = Files.readString(ROOT.resolve("Makefile"));
+        Matcher recipe =
+                Pattern.compile("(?ms)^package:[^\\n]*\\n((?:\\t[^\\n]*\\n)+)").matcher(makefile);
+
+        assertThat(recipe.find()).as("Makefile needs a package target").isTrue();
+        assertThat(recipe.group(1))
+                .contains("gh release create v$(VERSION)")
+                .contains("target/map-services-$(VERSION).jar")
+                .contains("target/map-services-$(VERSION)-sources.jar")
+                .contains("target/map-services-$(VERSION)-javadoc.jar")
+                .doesNotContain("release profile");
+    }
 }
