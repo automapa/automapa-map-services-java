@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-First version of the Java SDK, planned as `0.1.0`. Feature parity with the PHP SDK (`automapa/map-services`),
+## [0.1.0] - 2026-11-16
+
+First version of the Java SDK. Feature parity with the PHP SDK (`automapa/map-services`),
 without the deprecated speed report service.
 
 ### Added
@@ -37,3 +39,6 @@ without the deprecated speed report service.
 ### Changed
 - `make examples` runs only the examples of the services listed in `AUTOMAPA_API_REQUIRED_ACCESS` and reports the
   others as skipped; `EXAMPLES_DRY_RUN=1 make examples` prints the plan without calling the API
+
+[Unreleased]: https://github.com/automapa/automapa-map-services-java/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/automapa/automapa-map-services-java/releases/tag/v0.1.0

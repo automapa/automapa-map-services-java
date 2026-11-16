@@ -312,8 +312,11 @@ class DocumentationTest {
     }
 
     @Test
-    void changelogFollowsKeepAChangelog() throws IOException {
+    void changelogFollowsKeepAChangelog() throws Exception {
         String changelog = Files.readString(ROOT.resolve("CHANGELOG.md"), StandardCharsets.UTF_8);
+        PomModel pom = PomModel.load(ROOT.resolve("pom.xml"));
+        String version = pom.projectVersion();
+        String url = pom.projectText("url");
 
         assertThat(changelog)
                 .startsWith("# Changelog")
@@ -323,9 +326,14 @@ class DocumentationTest {
                 .contains("0.1.0")
                 .contains("### Added")
                 .doesNotContainPattern("\\bSpeed\\b");
-        String unreleased = section(changelog, "## [Unreleased]", "\n## [");
-        String added = section(unreleased, "### Added", "\n### ");
-        String changed = section(unreleased, "### Changed", "\n### ");
+        assertThat(version).as("pom.xml version of a release").doesNotEndWith("-SNAPSHOT");
+        assertThat(changelog)
+                .containsPattern("\\n## \\[" + Pattern.quote(version) + "\\] - \\d{4}-\\d{2}-\\d{2}\\n")
+                .contains("[Unreleased]: " + url + "/compare/v" + version + "...HEAD")
+                .contains("[" + version + "]: " + url + "/releases/tag/v" + version);
+        String release = section(changelog, "## [" + version + "]", "\n## [");
+        String added = section(release, "### Added", "\n### ");
+        String changed = section(release, "### Changed", "\n### ");
 
         assertThat(added)
                 .contains("`RoadPermit` (`list`, `add`, `overwrite`, `remove`)")
